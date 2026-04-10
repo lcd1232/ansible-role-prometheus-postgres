@@ -13,10 +13,12 @@ def test_service_running(host):
 
 
 def test_metrics_endpoint(host):
-    out = host.check_output('wget -qO- http://localhost:19187/metrics')
+    cmd = "python3 -c \"import urllib.request; print(urllib.request.urlopen('http://localhost:19187/metrics').read().decode())\""
+    out = host.check_output(cmd)
     assert 'pg_database_size_bytes' in out
 
 
 def test_database_metric(host):
-    out = host.check_output('wget -qO- http://localhost:19187/metrics')
+    cmd = "python3 -c \"import urllib.request; print(urllib.request.urlopen('http://localhost:19187/metrics').read().decode())\""
+    out = host.check_output(cmd)
     assert 'datname="alice"' in out
