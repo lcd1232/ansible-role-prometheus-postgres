@@ -9,10 +9,11 @@
         cache_valid_time: 600
       when: ansible_facts.os_family == 'Debian'
 
-    - name: Install curl for testing.
-      ansible.builtin.package:
+    - name: Install curl for testing on Debian.
+      ansible.builtin.apt:
         name: curl
         state: present
+      when: ansible_facts.os_family == 'Debian'
 
     - name: Wait for systemd to complete initialization.
       ansible.builtin.command: systemctl is-system-running
@@ -30,12 +31,12 @@
     - role: geerlingguy.postgresql
       postgresql_databases:
         - name: alice
+          lc_collate: C
+          lc_ctype: C
       postgresql_users:
         - name: alice
           password: alice123
           db: alice
-      postgresql_version: "16"
-      postgresql_locales: []
 
     - role: lcd1232.prometheus_postgres
       prometheus_postgres_dbname: alice
