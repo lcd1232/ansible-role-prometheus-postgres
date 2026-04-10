@@ -3,26 +3,18 @@ dependency:
   name: galaxy
 driver:
   name: docker
-lint: |
-    yamllint .
-    ansible-lint
-    flake8
 platforms:
   - name: prometheus-postgres
-    image: eniocarboni/docker-rockylinux-systemd:9
+    image: "${MOLECULE_IMAGE:-eniocarboni/docker-rockylinux-systemd:9}"
     image_version: latest
     privileged: true
     command: /sbin/init
     cgroupns_mode: host
     tmpfs:
       - /sys/fs/cgroup
-    groups:
-      - extra_options
 provisioner:
   name: ansible
-  lint:
-    name: ansible-lint
-scenario:
-  name: default
+  playbooks:
+    converge: converge.yml
 verifier:
   name: testinfra

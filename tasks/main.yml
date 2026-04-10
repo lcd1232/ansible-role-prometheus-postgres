@@ -1,99 +1,112 @@
 ---
-# tasks file for prometheus-postgres
-
-- name: Ensure {{ prometheus_postgres_system_user }} users exists
+- name: Create exporter system user.
   ansible.builtin.user:
     name: "{{ prometheus_postgres_system_user }}"
-    comment: "prometheus_postgres_system_user"
+    comment: "Prometheus postgres exporter"
     system: true
     shell: /bin/false
     create_home: false
-  when: "prometheus_postgres_system_user != 'postgres'"
+  when: prometheus_postgres_system_user != 'postgres'
 
-- name: prometheus postgres | create directories
+- name: Create postgres exporter directories.
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: 0755
-  with_items:
+    mode: "0755"
+  loop:
     - /opt/prometheus/postgres
     - /etc/prometheus
 
-- name: prometheus postgres | get checksums
-  ansible.builtin.set_fact:
-    checksum_list: "{{ lookup('url', \
-      'https://github.com/prometheus-community/postgres_exporter/\
-      releases/download/v' + prometheus_postgres_version + '/\
-      sha256sums.txt', wantlist=True) | list }}"
-  delegate_to: localhost
-  run_once: true
+- name: Check current postgres_exporter version.
+  ansible.builtin.command:
+    cmd: /opt/prometheus/postgres_exporter/postgres_exporter --version
+  register: _exporter_version_check
+  changed_when: false
+  failed_when: false
 
-- name: prometheus postgres | get checksum for {{ go_arch }}
-  ansible.builtin.set_fact:
-    exporter_checksum: "{{ item.split(' ')[0] }}"
-  with_items: "{{ checksum_list }}"
-  delegate_to: localhost
-  when:
-    - "('linux-' + go_arch + '.tar.gz') in item"
+- name: Download and install postgres_exporter.
+  when: >-
+    _exporter_version_check.rc != 0 or
+    prometheus_postgres_version not in (_exporter_version_check.stderr | default(''))
+  block:
+    - name: Get checksums from GitHub.
+      ansible.builtin.set_fact:
+        _checksum_list: >-
+          {{ lookup('url',
+            'https://github.com/prometheus-community/postgres_exporter/releases/download/v'
+            + prometheus_postgres_version + '/sha256sums.txt',
+            wantlist=True) | list }}
+      delegate_to: localhost
+      run_once: true
 
-- name: prometheus postgres | download
-  become: true
-  ansible.builtin.get_url:
-    # note the v0.9.0 in tag but 0.9.0 in the filename
-    url: "https://github.com/prometheus-community/postgres_exporter/\
-      releases/download/v{{ prometheus_postgres_version }}/\
-      postgres_exporter-{{ prometheus_postgres_version }}.\
-      linux-{{ go_arch }}.tar.gz"
-    checksum: sha256:{{ exporter_checksum }}
-    dest: "/opt/prometheus/postgres_exporter\
-      -{{ prometheus_postgres_version }}.linux-{{ go_arch }}.tar.gz"
+    - name: Extract checksum for {{ go_arch }}.
+      ansible.builtin.set_fact:
+        _exporter_checksum: "{{ item.split(' ')[0] }}"
+      loop: "{{ _checksum_list }}"
+      when: "('linux-' + go_arch + '.tar.gz') in item"
+      delegate_to: localhost
 
-- name: prometheus postgres | install postgres-exporter
-  become: true
-  ansible.builtin.unarchive:
-    src: "/opt/prometheus/postgres_exporter\
-      -{{ prometheus_postgres_version }}.linux-{{ go_arch }}.tar.gz"
-    dest: /opt/prometheus
-    group: root
-    owner: root
-    remote_src: true
+    - name: Download postgres_exporter binary.
+      become: true
+      ansible.builtin.get_url:
+        url: >-
+          https://github.com/prometheus-community/postgres_exporter/releases/download/v{{
+            prometheus_postgres_version }}/postgres_exporter-{{
+            prometheus_postgres_version }}.linux-{{ go_arch }}.tar.gz
+        checksum: "sha256:{{ _exporter_checksum }}"
+        dest: >-
+          /opt/prometheus/postgres_exporter-{{
+            prometheus_postgres_version }}.linux-{{ go_arch }}.tar.gz
+        mode: "0644"
 
-- name: prometheus postgres | symlink postgres-exporter
+    - name: Extract postgres_exporter archive.
+      become: true
+      ansible.builtin.unarchive:
+        src: >-
+          /opt/prometheus/postgres_exporter-{{
+            prometheus_postgres_version }}.linux-{{ go_arch }}.tar.gz
+        dest: /opt/prometheus
+        owner: root
+        group: root
+        remote_src: true
+
+- name: Symlink postgres_exporter to current version.
   become: true
   ansible.builtin.file:
-    src: "/opt/prometheus/postgres_exporter\
-      -{{ prometheus_postgres_version }}.linux-{{ go_arch }}"
+    src: >-
+      /opt/prometheus/postgres_exporter-{{
+        prometheus_postgres_version }}.linux-{{ go_arch }}
     path: /opt/prometheus/postgres_exporter
     force: true
     state: link
-  notify:
-    - restart prometheus-postgres
+  notify: Restart prometheus-postgres-exporter.
 
-- name: prometheus postgres | configuration file
+- name: Assemble legacy query configuration file.
   become: true
   ansible.builtin.assemble:
-    dest: /etc/prometheus/postgres-queries.yml
+    dest: "{{ prometheus_postgres_extend_query_path }}"
     regexp: "^{{ prometheus_postgres_query_filenames | join('|') }}$"
     remote_src: false
     src: "{{ prometheus_postgres_query_directory }}"
-    mode: 0644
-  notify:
-    - restart prometheus-postgres
+    mode: "0644"
+  when:
+    - prometheus_postgres_extend_query_path | length > 0
+    - prometheus_postgres_query_filenames | length > 0
+  notify: Restart prometheus-postgres-exporter.
 
-- name: prometheus postgres | server systemd service
+- name: Deploy systemd service unit.
   become: true
   ansible.builtin.template:
     dest: /etc/systemd/system/prometheus-postgres-exporter.service
     src: systemd-system-prometheus-postgres-exporter-service.j2
-    mode: 0644
-  notify:
-    - restart prometheus-postgres
+    mode: "0644"
+  notify: Restart prometheus-postgres-exporter.
 
-- name: prometheus postgres | enable and start server systemd
+- name: Ensure prometheus-postgres-exporter is started and enabled.
   become: true
   ansible.builtin.systemd:
     daemon_reload: true
-    enabled: true
+    enabled: "{{ prometheus_postgres_enabled }}"
     name: prometheus-postgres-exporter.service
-    state: started
+    state: "{{ prometheus_postgres_state }}"

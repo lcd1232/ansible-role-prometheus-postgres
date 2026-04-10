@@ -1,12 +1,27 @@
 [Unit]
-Description=Prometheus Postgres Exporter Server
+Description=Prometheus Postgres Exporter
+After=network-online.target
 
 [Service]
 User={{ prometheus_postgres_system_user }}
 Environment="DATA_SOURCE_NAME={{ prometheus_postgres_data_source_name }}"
 ExecStart=/opt/prometheus/postgres_exporter/postgres_exporter \
-    --extend.query-path /etc/prometheus/postgres-queries.yml \
-    --web.listen-address {{ prometheus_postgres_addr }}:{{ prometheus_postgres_port }}
+    --web.listen-address={{ prometheus_postgres_addr }}:{{ prometheus_postgres_port }}
+{%- for collector in prometheus_postgres_enabled_collectors %} \
+    --collector.{{ collector }}
+{%- endfor %}
+{%- for collector in prometheus_postgres_disabled_collectors %} \
+    --no-collector.{{ collector }}
+{%- endfor %}
+{%- if prometheus_postgres_extend_query_path %} \
+    --extend.query-path={{ prometheus_postgres_extend_query_path }}
+{%- endif %}
+{%- if prometheus_postgres_options %} \
+    {{ prometheus_postgres_options }}
+{%- endif %}
+
+Restart=on-failure
+TimeoutStartSec=5
 
 [Install]
 WantedBy=multi-user.target

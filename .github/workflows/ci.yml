@@ -1,14 +1,12 @@
 ---
 name: CI
-# yamllint disable-line rule:truthy
-on:
+'on':
+  pull_request:
   push:
     branches:
       - master
-  pull_request:
-
-permissions:
-  contents: read
+  schedule:
+    - cron: "0 7 * * 0"
 
 jobs:
 
@@ -20,29 +18,54 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dependencies
+      - name: Run pre-commit.
         run: |
-          pip install yamllint ansible ansible-lint
-      - name: Run yamllint
-        run: yamllint .
-      - name: Run ansible-lint
-        run: ansible-lint
+          pip install pre-commit
+          pre-commit run --all-files
 
   molecule:
-    name: Molecule
-    needs:
-      - lint
+    name: Molecule (${{ matrix.distro }})
+    needs: lint
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
+      matrix:
+        include:
+          - distro: rockylinux9
+            image: eniocarboni/docker-rockylinux-systemd:9
+          - distro: debian11
+            image: "geerlingguy/docker-debian11-ansible:latest"
+          - distro: debian12
+            image: "geerlingguy/docker-debian12-ansible:latest"
+          - distro: ubuntu2204
+            image: "geerlingguy/docker-ubuntu2204-ansible:latest"
+          - distro: ubuntu2404
+            image: "geerlingguy/docker-ubuntu2404-ansible:latest"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dependencies
-        run: |
-          pip install "requests" "ansible" "ansible-compat"
-          pip install "molecule" molecule-plugins[docker] pytest-testinfra
-      - name: Run molecule
+      - name: Install dependencies.
+        run: >-
+          pip install requests ansible ansible-compat
+          molecule molecule-plugins[docker] pytest-testinfra
+      - name: Run molecule.
         run: molecule test
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"
+          MOLECULE_IMAGE: ${{ matrix.image }}
+
+  publish:
+    name: Galaxy
+    if: startsWith(github.ref, 'refs/tags')
+    needs: molecule
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to Galaxy.
+        uses: ansible-actions/ansible-galaxy-action@v1.2.0
+        with:
+          galaxy_api_key: ${{ secrets.GALAXY_API_KEY }}
+          galaxy_version: ${{ github.ref_name }}
