@@ -1,7 +1,6 @@
 ---
 - name: Converge
   hosts: all
-  become: true
 
   pre_tasks:
     - name: Update apt cache.
@@ -36,6 +35,7 @@
           password: alice123
           db: alice
       postgresql_version: "16"
+      postgresql_locales: []
 
     - role: lcd1232.prometheus_postgres
       prometheus_postgres_dbname: alice
