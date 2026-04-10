@@ -1,10 +1,5 @@
 ---
 warn_list:
-  - name[casing]
-  - name[template]
-  - fqcn[action-core]
-  - schema[meta]
-  - yaml[octal-values]
   - risky-file-permissions
 
 exclude_paths:

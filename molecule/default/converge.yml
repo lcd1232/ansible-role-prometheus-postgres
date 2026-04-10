@@ -1,0 +1,30 @@
+---
+- name: Converge
+  hosts: all
+
+  pre_tasks:
+    - name: Wait for systemd to complete initialization.
+      ansible.builtin.command: systemctl is-system-running
+      register: systemctl_status
+      until: >
+        'running' in systemctl_status.stdout or
+        'degraded' in systemctl_status.stdout
+      retries: 30
+      delay: 5
+      when: ansible_facts.service_mgr == 'systemd'
+      changed_when: false
+      failed_when: systemctl_status.rc > 1
+
+  roles:
+    - role: ome.postgresql
+      postgresql_databases:
+        - name: alice
+      postgresql_users:
+        - user: alice
+          password: alice123
+          databases: [alice]
+      postgresql_version: "14"
+
+    - role: lcd1232.prometheus_postgres
+      prometheus_postgres_dbname: alice
+      prometheus_postgres_port: 19187

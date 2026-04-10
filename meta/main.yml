@@ -1,13 +1,20 @@
 ---
+dependencies: []
+
 galaxy_info:
+  role_name: prometheus_postgres
+  namespace: lcd1232
   author: lcd1232
-  description: Prometheus Postgres exporter
+  description: Installs and configures Prometheus postgres_exporter.
   license: BSD
-  min_ansible_version: 2.11
+  min_ansible_version: "2.11"
   platforms:
     - name: EL
       versions:
-        - 9
-  namespace: lcd1232
-  role_name: prometheus_postgres
-  galaxy_tags: []
+        - "9"
+  galaxy_tags:
+    - monitoring
+    - prometheus
+    - postgresql
+    - postgres
+    - exporter

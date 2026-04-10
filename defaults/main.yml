@@ -1,18 +1,44 @@
 ---
-# defaults file for prometheus-postgres
+# Version of postgres_exporter to install.
+prometheus_postgres_version: "0.19.1"
 
-prometheus_postgres_version: 0.9.0
-
+# Database connection string.
 prometheus_postgres_dbname: postgres
-prometheus_postgres_data_source_name: "user=postgres dbname=\
-  {{ prometheus_postgres_dbname }} host=/var/run/postgresql/ sslmode=disable"
+prometheus_postgres_data_source_name: >-
+  user=postgres dbname={{ prometheus_postgres_dbname }}
+  host=/var/run/postgresql/ sslmode=disable
 
-prometheus_postgres_addr: 0.0.0.0
+# Network settings.
+prometheus_postgres_addr: "0.0.0.0"
 prometheus_postgres_port: 9187
 
-prometheus_postgres_query_filenames:
-  - queries-default.yml
-
-prometheus_postgres_query_directory: files/
-
+# System user to run the exporter.
 prometheus_postgres_system_user: postgres
+
+# Service management.
+prometheus_postgres_state: started
+prometheus_postgres_enabled: true
+prometheus_postgres_restart_handler_state: restarted
+
+# Extra collectors to enable (beyond upstream defaults).
+# Example: ["postmaster", "stat_statements", "long_running_transactions"]
+prometheus_postgres_enabled_collectors: []
+
+# Collectors to explicitly disable (from upstream defaults).
+# Example: ["wal", "locks"]
+prometheus_postgres_disabled_collectors: []
+
+# Extra CLI flags passed to postgres_exporter.
+# Example: "--collector.stat_statements.limit=200 --log.level=debug"
+prometheus_postgres_options: ""
+
+# Legacy: path to a custom query YAML file (deprecated upstream).
+# Leave empty to use built-in collectors only.
+prometheus_postgres_extend_query_path: ""
+
+# Legacy: query filenames to assemble into extend_query_path file.
+# Only used when prometheus_postgres_extend_query_path is set.
+prometheus_postgres_query_filenames: []
+
+# Legacy: source directory containing query files.
+prometheus_postgres_query_directory: files/

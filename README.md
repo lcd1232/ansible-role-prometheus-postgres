@@ -1,36 +1,91 @@
-# Prometheus Postgres
+# Ansible Role: Prometheus Postgres Exporter
 
-[![Actions Status](https://github.com/lcd1232/ansible-role-prometheus-postgres/workflows/Molecule/badge.svg)](https://github.com/lcd1232/ansible-role-prometheus-postgres/actions)
+[![CI](https://github.com/lcd1232/ansible-role-prometheus-postgres/actions/workflows/ci.yml/badge.svg)](https://github.com/lcd1232/ansible-role-prometheus-postgres/actions/workflows/ci.yml)
 [![Ansible Role](https://img.shields.io/badge/ansible--galaxy-prometheus_postgres-blue.svg)](https://galaxy.ansible.com/ui/standalone/roles/lcd1232/prometheus_postgres/)
 
-Prometheus Postgres exporter.
+Installs and configures the [prometheus-community/postgres_exporter](https://github.com/prometheus-community/postgres_exporter) for exposing PostgreSQL metrics to Prometheus.
 
-This currently uses the local `postgres` administrator account on the PostgreSQL server.
-In future this should be changed to use an unprivileged account.
+## Requirements
 
-See https://github.com/prometheus-community/postgres_exporter
+PostgreSQL must be installed and running on the target host.
 
 ## Role Variables
 
-All variables are optional:
+Available variables are listed below, along with default values (see `defaults/main.yml`):
 
-- `prometheus_postgres_dbname`: The database name
-- `prometheus_postgres_data_source_name`: implies `DATA_SOURCE_NAME` ENV variable in the [postgres_exporter](https://github.com/wrouesnel/postgres_exporter)
-- `prometheus_postgres_addr`: Serve metrics on this address, default `0.0.0.0`
-- `prometheus_postgres_port`: Serve metrics on this port, default `9187`
-- `prometheus_postgres_query_directory`: the directory containing query files which will be loaded by the exporter, default is `files/`
-- `prometheus_postgres_query_filenames`: A list of additional query files from `prometheus_postgres_query_directory`, default `[queries-default.yml]`
-- `prometheus_postgres_version`: the `postgres_exporter` version to be installed, default `0.4.6`
-- `prometheus_postgres_sha256`: the SHA256 checksum of the `postgres_exporter` bundle of version `prometheus_postgres_version`, default: `9ed457c9a6d3a1e0132b3fe10f1d072457a667b009993a73e90b47ca99cc5bca`
-- `prometheus_postgres_system_user`: The OS user used to run `postgres_exporter`, default: `postgres` (OS user is created only when differs from defaults).
+    prometheus_postgres_version: "0.19.1"
 
-## Example playbook
+The version of postgres_exporter to install.
 
-    - hosts: localhost
+    prometheus_postgres_dbname: postgres
+    prometheus_postgres_data_source_name: >-
+      user=postgres dbname={{ prometheus_postgres_dbname }}
+      host=/var/run/postgresql/ sslmode=disable
+
+Database connection settings. The data source name is passed as the `DATA_SOURCE_NAME` environment variable.
+
+    prometheus_postgres_addr: "0.0.0.0"
+    prometheus_postgres_port: 9187
+
+Address and port for the metrics endpoint.
+
+    prometheus_postgres_system_user: postgres
+
+System user to run the exporter. If set to something other than `postgres`, the user will be created automatically.
+
+    prometheus_postgres_state: started
+    prometheus_postgres_enabled: true
+
+Service state and boot enablement.
+
+    prometheus_postgres_restart_handler_state: restarted
+
+State to apply when the restart handler is triggered. Set to `reloaded` if you prefer graceful reloads.
+
+    prometheus_postgres_enabled_collectors: []
+
+Extra collectors to enable beyond upstream defaults. Example: `["postmaster", "stat_statements", "long_running_transactions"]`.
+
+    prometheus_postgres_disabled_collectors: []
+
+Collectors to explicitly disable from upstream defaults. Example: `["wal", "locks"]`.
+
+    prometheus_postgres_options: ""
+
+Extra CLI flags passed directly to postgres_exporter. Example: `"--collector.stat_statements.limit=200 --log.level=debug"`.
+
+    prometheus_postgres_extend_query_path: ""
+
+Path to a custom query YAML file. This uses the deprecated `--extend.query-path` flag. Leave empty to use built-in collectors only.
+
+    prometheus_postgres_query_filenames: []
+    prometheus_postgres_query_directory: files/
+
+Legacy settings for assembling query files. Only used when `prometheus_postgres_extend_query_path` is set.
+
+## Dependencies
+
+None.
+
+## Example Playbook
+
+    - hosts: db
       roles:
-      - role: lcd1232.prometheus_postgres
-        prometheus_postgres_dbname: test
+        - lcd1232.prometheus_postgres
+
+To enable additional collectors:
+
+    - hosts: db
+      roles:
+        - role: lcd1232.prometheus_postgres
+          prometheus_postgres_enabled_collectors:
+            - stat_statements
+            - postmaster
+
+## License
+
+BSD
 
 ## Author Information
 
-lcd1232
+Created by [lcd1232](https://github.com/lcd1232).
