@@ -1,7 +1,7 @@
 # Prometheus Postgres
 
-[![Actions Status](https://github.com/ome/ansible-role-prometheus-postgres/workflows/Molecule/badge.svg)](https://github.com/ome/ansible-role-prometheus-postgres/actions)
-[![Ansible Role](https://img.shields.io/badge/ansible--galaxy-prometheus_postgres-blue.svg)](https://galaxy.ansible.com/ui/standalone/roles/ome/prometheus_postgres/)
+[![Actions Status](https://github.com/lcd1232/ansible-role-prometheus-postgres/workflows/Molecule/badge.svg)](https://github.com/lcd1232/ansible-role-prometheus-postgres/actions)
+[![Ansible Role](https://img.shields.io/badge/ansible--galaxy-prometheus_postgres-blue.svg)](https://galaxy.ansible.com/ui/standalone/roles/lcd1232/prometheus_postgres/)
 
 Prometheus Postgres exporter.
 
@@ -28,9 +28,9 @@ All variables are optional:
 
     - hosts: localhost
       roles:
-      - role: ome.prometheus_postgres
+      - role: lcd1232.prometheus_postgres
         prometheus_postgres_dbname: test
 
 ## Author Information
 
-ome-devel@lists.openmicroscopy.org.uk
+lcd1232
