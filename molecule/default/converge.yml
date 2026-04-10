@@ -1,6 +1,7 @@
 ---
 - name: Converge
   hosts: all
+  become: true
 
   pre_tasks:
     - name: Update apt cache.
@@ -8,6 +9,11 @@
         update_cache: true
         cache_valid_time: 600
       when: ansible_facts.os_family == 'Debian'
+
+    - name: Install curl for testing.
+      ansible.builtin.package:
+        name: curl
+        state: present
 
     - name: Wait for systemd to complete initialization.
       ansible.builtin.command: systemctl is-system-running
@@ -29,7 +35,7 @@
         - name: alice
           password: alice123
           db: alice
-      postgresql_version: "14"
+      postgresql_version: "16"
 
     - role: lcd1232.prometheus_postgres
       prometheus_postgres_dbname: alice
