@@ -13,10 +13,10 @@ def test_service_running(host):
 
 
 def test_metrics_endpoint(host):
-    out = host.check_output('curl http://localhost:19187/metrics')
+    out = host.check_output('wget -qO- http://localhost:19187/metrics')
     assert 'pg_database_size_bytes' in out
 
 
 def test_database_metric(host):
-    out = host.check_output('curl http://localhost:19187/metrics')
+    out = host.check_output('wget -qO- http://localhost:19187/metrics')
     assert 'datname="alice"' in out
