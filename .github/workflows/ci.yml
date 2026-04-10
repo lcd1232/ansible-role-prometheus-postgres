@@ -1,0 +1,48 @@
+---
+name: CI
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install yamllint ansible ansible-lint
+      - name: Run yamllint
+        run: yamllint .
+      - name: Run ansible-lint
+        run: ansible-lint
+
+  molecule:
+    name: Molecule
+    needs:
+      - lint
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install "requests" "ansible" "ansible-compat"
+          pip install "molecule" molecule-plugins[docker] pytest-testinfra
+      - name: Run molecule
+        run: molecule test
