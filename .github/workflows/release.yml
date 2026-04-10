@@ -1,0 +1,19 @@
+---
+name: Release
+'on':
+  push:
+    tags:
+      - '*'
+
+jobs:
+
+  publish:
+    name: Publish to Galaxy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to Galaxy.
+        uses: ansible-actions/ansible-galaxy-action@v1.2.0
+        with:
+          galaxy_api_key: ${{ secrets.GALAXY_API_KEY }}
+          galaxy_version: ${{ github.ref_name }}

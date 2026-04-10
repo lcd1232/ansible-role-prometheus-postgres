@@ -56,16 +56,3 @@ jobs:
           PY_COLORS: "1"
           ANSIBLE_FORCE_COLOR: "1"
           MOLECULE_IMAGE: ${{ matrix.image }}
-
-  publish:
-    name: Galaxy
-    if: startsWith(github.ref, 'refs/tags')
-    needs: molecule
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Publish to Galaxy.
-        uses: ansible-actions/ansible-galaxy-action@v1.2.0
-        with:
-          galaxy_api_key: ${{ secrets.GALAXY_API_KEY }}
-          galaxy_version: ${{ github.ref_name }}
