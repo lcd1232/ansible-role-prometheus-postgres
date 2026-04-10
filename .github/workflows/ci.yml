@@ -26,11 +26,18 @@ jobs:
         run: ansible-lint
 
   molecule:
-    name: Molecule
+    name: Molecule (${{ matrix.distro }})
     needs: lint
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
+      matrix:
+        distro:
+          - rockylinux9
+          - debian11
+          - debian12
+          - ubuntu2204
+          - ubuntu2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -42,6 +49,10 @@ jobs:
           molecule molecule-plugins[docker] pytest-testinfra
       - name: Run molecule.
         run: molecule test
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"
+          MOLECULE_DISTRO: ${{ matrix.distro }}
 
   publish:
     name: Galaxy
